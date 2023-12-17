@@ -1,0 +1,20 @@
+[
+    {
+      "id": 1,
+      "name": "OG Emoji pack",
+      "price": "0.09",
+      "description": "Obtenha um pacote de emojis irados por apenas $0.09! Inclui 3 emojis legais: Forreal, Flooshed, and Sheesh!",
+      "image_url": "https://i.imgur.com/rVD8bjt.png",
+      "filename": "Emojis.zip",
+      "hash": "QmWWH69mTL66r3H8P4wUn24t1L5pvdTJGUTKBqT11KCHS5"
+    },
+    {
+        "id": 2,
+        "name": "Muro de berlin",
+        "price": "0.09",
+        "description": "Testemunhe a histórica queda do Muro de Berlim, simbolizando o fim da Guerra Fria.",
+        "image_url": "https://i.imgur.com/rVD8bjt.png",
+        "filename": "MuroDeBerlin.zip",
+        "hash": "QmafMjy3vWWgbHzoaBjeB77S2565tTpGnLqLNMdM5Cb4SR"
+      }
+  ]
