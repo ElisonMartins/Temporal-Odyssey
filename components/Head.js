@@ -7,8 +7,8 @@ export default function HeadComponent() {
       <meta name="viewport" content="initial-scale=1.0, width=device-width" />
       <meta name="theme-color" content="#000000" />
 
-      <title>Solana Pay Store</title>
-      <meta name="title" content="Solana Pay Store" />
+      <title>Temporal Odyssey</title>
+      <meta name="title" content="Temporal Odyssey" />
       <meta name="description" content="Compre itens na minha loja usando Solana Pay!" />
 
       {/* Facebook */}
