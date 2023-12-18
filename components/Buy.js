@@ -1,19 +1,24 @@
-import React, { useState, useMemo } from "react";
-import { Keypair, Transaction } from "@solana/web3.js";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { InfinitySpin } from "react-loader-spinner";
-import IPFSDownload from "./IpfsDownload";
+import React, { useState, useEffect, useMemo } from 'react';
+import { Keypair, Transaction } from '@solana/web3.js';
+import { findReference, FindReferenceError } from '@solana/pay';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { InfinitySpin } from 'react-loader-spinner';
+import IPFSDownload from './IpfsDownload';
+import { addOrder } from '../lib/api';
+
+const STATUS = {
+  Initial: 'Initial',
+  Submitted: 'Submitted',
+  Paid: 'Paid',
+};
 
 export default function Buy({ itemID }) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
-  const orderID = useMemo(() => Keypair.generate().publicKey, []); // Public key used to identify the order
+  const orderID = useMemo(() => Keypair.generate().publicKey, []); // Chave pública usada para identificar o pedido
 
-  const [paid, setPaid] = useState(null);
-  const [loading, setLoading] = useState(false); // Loading state of all above
-
-
-  // useMemo é um gancho do React que só computa o valor se as dependências mudarem
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(STATUS.Initial); // Acompanhamento do status da transação
 
   const order = useMemo(
     () => ({
@@ -24,31 +29,26 @@ export default function Buy({ itemID }) {
     [publicKey, orderID, itemID]
   );
 
-  // Pegue o objeto transação do servidor 
   const processTransaction = async () => {
     setLoading(true);
-    const txResponse = await fetch("../api/createTransaction", {
-      method: "POST",
+    const txResponse = await fetch('../api/createTransaction', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(order),
     });
     const txData = await txResponse.json();
 
+    const tx = Transaction.from(Buffer.from(txData.transaction, 'base64'));
+    console.log('Os dados da Tx são', tx);
 
-    // Nós criamos um objeto transação
-    const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
-    console.log("Tx data is", tx);
-
-
-    // Tente enviar a transação para a rede
     try {
-      // Envie a transação para a rede
       const txHash = await sendTransaction(tx, connection);
-      console.log(`Transação enviada: https://solscan.io/tx/${txHash}?cluster=devnet`);
-      // Mesmo que isso possa falhar, por ora, vamos apenas torná-lo realidade
-      setPaid(true);
+      console.log(
+        `Transação enviada: https://solscan.io/tx/${txHash}?cluster=devnet`
+      );
+      setStatus(STATUS.Submitted);
     } catch (error) {
       console.error(error);
     } finally {
@@ -56,10 +56,43 @@ export default function Buy({ itemID }) {
     }
   };
 
+  useEffect(() => {
+    // Verifique se a transação foi confirmada
+    if (status === STATUS.Submitted) {
+      setLoading(true);
+      const interval = setInterval(async () => {
+        try {
+          const result = await findReference(connection, orderID);
+          console.log('Encontrando referência da tx', result.confirmationStatus);
+          if (
+            result.confirmationStatus === 'confirmed' ||
+            result.confirmationStatus === 'finalized'
+          ) {
+            clearInterval(interval);
+            setStatus(STATUS.Paid);
+            setLoading(false);
+            addOrder(order);
+            alert('Obrigado por sua compra!');
+          }
+        } catch (e) {
+          if (e instanceof FindReferenceError) {
+            return null;
+          }
+          console.error('Erro desconhecido', e);
+        } finally {
+          setLoading(false);
+        }
+      }, 1000);
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [status]);
+
   if (!publicKey) {
     return (
       <div>
-        <p>É necessário conectar sua carteira para realizar a transação</p>
+        <p>Você precisa conectar sua carteira para fazer transações</p>
       </div>
     );
   }
@@ -70,11 +103,19 @@ export default function Buy({ itemID }) {
 
   return (
     <div>
-      {paid ? (
-        <IPFSDownload filename="emojis.zip" hash="QmWWH69mTL66r3H8P4wUn24t1L5pvdTJGUTKBqT11KCHS5" cta="Download emojis"/>
+      {status === STATUS.Paid ? (
+        <IPFSDownload
+          filename="emojis.zip"
+          hash="QmWWH69mTL66r3H8P4wUn24t1L5pvdTJGUTKBqT11KCHS5"
+          cta="Download emojis"
+        />
       ) : (
-        <button disabled={loading} className="buy-button" onClick={processTransaction}>
-          Compre agora 
+        <button
+          disabled={loading}
+          className="buy-button"
+          onClick={processTransaction}
+        >
+          Compre Agora 🛒
         </button>
       )}
     </div>
